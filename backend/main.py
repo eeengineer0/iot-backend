@@ -111,7 +111,7 @@ def on_message(client, userdata, msg):
 # -----------------------------------------------------
 mqtt_client = mqtt.Client()
 mqtt_client.username_pw_set("p_user", "P_user123")
-mqtt_client.tls_set("/Users/dorukerdogan/PycharmProjects/mqtt/isrgrootx1.pem")
+mqtt_client.tls_set()
 
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
