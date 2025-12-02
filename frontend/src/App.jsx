@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import GraphCard from "./GraphCard";
 
-const API = import.meta.env.VITE_API_BASE_URL;   // ✅ ADDED THIS
+const API = import.meta.env.VITE_API_BASE_URL;
 
 function App() {
   const [data, setData] = useState({});
   const [history, setHistory] = useState({});
 
+  // Fetch realtime data every 1 sec
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch(`${API}/realtime`)     // ✅ FIXED
+      fetch(`${API}/realtime`)
         .then((res) => res.json())
         .then((json) => {
           const now = Date.now();
@@ -55,7 +56,7 @@ function App() {
   }, []);
 
   const sendCommand = (device, action) => {
-    fetch(`${API}/command`, {       // ✅ FIXED
+    fetch(`${API}/command`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device, action }),
@@ -70,7 +71,7 @@ function App() {
       document.getElementById(`${device}-gas-limit`).value
     );
 
-    fetch(`${API}/set_limits`, {     // ✅ FIXED
+    fetch(`${API}/set_limits`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -80,4 +81,5 @@ function App() {
       }),
     });
   };
+
 
