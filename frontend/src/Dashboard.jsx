@@ -7,6 +7,7 @@ export default function Dashboard({
   logout,
   sendCommand,
   updateLimits,
+  goToUserManager,   // 🔥 REQUIRED NEW PROP
 }) {
   const cardStyle = (device) => {
     const now = Date.now();
@@ -68,11 +69,30 @@ export default function Dashboard({
             marginBottom: "20px",
           }}
         >
+          {/* ADMIN ONLY BUTTON */}
+          {user.role === "admin" && (
+            <button
+              onClick={goToUserManager}
+              style={{
+                padding: "8px 12px",
+                background: "#6f42c1",
+                color: "white",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                marginRight: "12px",
+              }}
+            >
+              Manage Users
+            </button>
+          )}
+
           <p>
             Logged in as:{" "}
             <strong style={{ color: "#1e90ff" }}>{user.username}</strong> (
             {user.role})
           </p>
+
           <button
             onClick={logout}
             style={{
@@ -291,3 +311,4 @@ export default function Dashboard({
     </div>
   );
 }
+
