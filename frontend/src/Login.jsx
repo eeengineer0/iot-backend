@@ -1,8 +1,13 @@
 import { useState } from "react";
 
-const USERS = {
+const defaultUsers = {
   admin: { password: "admin123", role: "admin" },
-  user:  { password: "user123",  role: "user" }
+  user: { password: "user123", role: "user" }
+};
+
+// Load users from storage OR fallback to defaults
+const getUsers = () => {
+  return JSON.parse(localStorage.getItem("users")) || defaultUsers;
 };
 
 export default function Login({ setUser }) {
@@ -11,16 +16,18 @@ export default function Login({ setUser }) {
   const [error, setError] = useState("");
 
   const handleLogin = () => {
-    if (!USERS[username] || USERS[username].password !== password) {
+    const users = getUsers(); // Load dynamic users
+
+    if (!users[username] || users[username].password !== password) {
       setError("Invalid username or password");
       return;
     }
 
-    const role = USERS[username].role;
+    const role = users[username].role;
 
     const userInfo = { username, role };
     localStorage.setItem("user", JSON.stringify(userInfo));
-    setUser(userInfo);
+    setUser(userInfo);   // 🔥 triggers login
   };
 
   return (
