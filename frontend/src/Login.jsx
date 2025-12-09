@@ -2,12 +2,40 @@ import { useState } from "react";
 
 const defaultUsers = {
   admin: { password: "admin123", role: "admin" },
-  user: { password: "user123", role: "user" }
+  user: { password: "user123", role: "user" },
 };
 
-// Load users from storage OR fallback to defaults
-const getUsers = () => {
-  return JSON.parse(localStorage.getItem("users")) || defaultUsers;
+// Synchronously load users and ensure defaults exist
+const loadUsers = () => {
+  try {
+    const raw = localStorage.getItem("users");
+
+    // If nothing stored → write defaults
+    if (!raw) {
+      localStorage.setItem("users", JSON.stringify(defaultUsers));
+      return { ...defaultUsers };
+    }
+
+    const parsed = JSON.parse(raw);
+
+    // If parsed is not an object → reset to defaults
+    if (!parsed || typeof parsed !== "object") {
+      localStorage.setItem("users", JSON.stringify(defaultUsers));
+      return { ...defaultUsers };
+    }
+
+    // Ensure at least "admin" exists
+    if (!parsed.admin) {
+      parsed.admin = { password: "admin123", role: "admin" };
+      localStorage.setItem("users", JSON.stringify(parsed));
+    }
+
+    return parsed;
+  } catch (e) {
+    // If JSON is corrupted → reset to defaults
+    localStorage.setItem("users", JSON.stringify(defaultUsers));
+    return { ...defaultUsers };
+  }
 };
 
 export default function Login({ setUser }) {
@@ -16,18 +44,18 @@ export default function Login({ setUser }) {
   const [error, setError] = useState("");
 
   const handleLogin = () => {
-    const users = getUsers(); // Load dynamic users
+    const users = loadUsers();  // ✅ always safe
 
-    if (!users[username] || users[username].password !== password) {
+    const record = users[username];
+
+    if (!record || record.password !== password) {
       setError("Invalid username or password");
       return;
     }
 
-    const role = users[username].role;
-
-    const userInfo = { username, role };
+    const userInfo = { username, role: record.role };
     localStorage.setItem("user", JSON.stringify(userInfo));
-    setUser(userInfo);   // 🔥 triggers login
+    setUser(userInfo);
   };
 
   return (
@@ -62,7 +90,7 @@ export default function Login({ setUser }) {
           borderRadius: "6px",
           border: "none",
           marginTop: "10px",
-          cursor: "pointer"
+          cursor: "pointer",
         }}
       >
         Login
