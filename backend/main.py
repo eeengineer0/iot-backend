@@ -2,7 +2,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import paho.mqtt.client as mqtt
+import json
+import os
 
+USERS_FILE = "users.json"
+
+# Load users
+if os.path.exists(USERS_FILE):
+    with open(USERS_FILE, "r") as f:
+        users = json.load(f)
+else:
+    users = {
+        "admin": {"password": "admin123", "role": "admin"},
+        "user": {"password": "user123", "role": "user"}
+    }
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=4)
 # -----------------------------------------------------
 # FASTAPI APP
 # -----------------------------------------------------
