@@ -1,29 +1,41 @@
 import { useEffect, useState } from "react";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
-import UserManager from "./UserManager";   // 🔥 NEW IMPORT
+import UserManager from "./UserManager";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
 export default function App() {
+  // -----------------------------
+  // AUTH STATE
+  // -----------------------------
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("user")) || null
   );
 
+  // -----------------------------
+  // PAGE STATE
+  // dashboard | users
+  // -----------------------------
+  const [page, setPage] = useState("dashboard");
+
+  // -----------------------------
+  // DEVICE DATA
+  // -----------------------------
   const [data, setData] = useState({});
   const [history, setHistory] = useState({});
-
-  // 🔥 NEW: Page state ("dashboard" or "users")
-  const [page, setPage] = useState("dashboard");
 
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
     setData({});
     setHistory({});
+    setPage("dashboard");
   };
 
-  // Fetch realtime data only when logged in
+  // -----------------------------
+  // FETCH DEVICE DATA WHEN LOGGED IN
+  // -----------------------------
   useEffect(() => {
     if (!user) return;
 
@@ -33,29 +45,43 @@ export default function App() {
         .then((json) => {
           const now = Date.now();
 
-          for (let n in json) json[n]._timestamp = now;
+          // Add timestamp to each device
+          for (let node in json) {
+            json[node]._timestamp = now;
+          }
+
           setData(json);
 
           setHistory((prev) => {
             const updated = { ...prev };
-            Object.keys(json).forEach((n) => {
-              const d = json[n];
-              if (!updated[n]) updated[n] = { time: [], temp: [], gas: [] };
 
-              updated[n].time.push(now);
-              updated[n].temp.push(d.t);
-              updated[n].gas.push(d.ao_v);
+            Object.keys(json).forEach((node) => {
+              const d = json[node];
+
+              if (!updated[node]) {
+                updated[node] = { time: [], temp: [], gas: [] };
+              }
+
+              updated[node].time.push(now);
+              updated[node].temp.push(d.t);
+              updated[node].gas.push(d.ao_v);
             });
+
             return updated;
           });
-        });
+        })
+        .catch(() => {});
     }, 1000);
 
     return () => clearInterval(interval);
   }, [user]);
 
+  // -----------------------------
+  // ADMIN COMMANDS
+  // -----------------------------
   const sendCommand = (device, action) => {
     if (user.role !== "admin") return;
+
     fetch(`${API}/command`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,6 +89,9 @@ export default function App() {
     });
   };
 
+  // -----------------------------
+  // LIMIT UPDATE (ADMIN ONLY)
+  // -----------------------------
   const updateLimits = (device) => {
     if (user.role !== "admin") return;
 
@@ -80,19 +109,20 @@ export default function App() {
     });
   };
 
-  // ---------------------------------------------------------
-  // 🔥 PAGE SWITCHING LOGIC
-  // ---------------------------------------------------------
+  // -----------------------------
+  // CONDITIONAL RENDERING
+  // -----------------------------
+  if (!user)
+    return <Login setUser={setUser} />;
 
-  // If not logged in → show login page
-  if (!user) return <Login setUser={setUser} />;
+  if (page === "users")
+    return (
+      <UserManager
+        currentUser={user}
+        goBack={() => setPage("dashboard")}
+      />
+    );
 
-  // If admin selected "Manage Users"
-  if (page === "users") {
-    return <UserManager goBack={() => setPage("dashboard")} />;
-  }
-
-  // Default → show Dashboard
   return (
     <Dashboard
       user={user}
@@ -101,7 +131,8 @@ export default function App() {
       history={history}
       sendCommand={sendCommand}
       updateLimits={updateLimits}
-      goToUserManager={() => setPage("users")}   // 🔥 add this!
+      goUsers={() => setPage("users")}
     />
   );
 }
+
