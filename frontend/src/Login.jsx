@@ -1,32 +1,37 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Login({ setUser }) {
-  const [users, setUsers] = useState({});
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const API = import.meta.env.VITE_API_BASE_URL;
-
-  // Fetch users from backend
-  useEffect(() => {
-    fetch(`${API}/users`)
-      .then(res => res.json())
-      .then(json => setUsers(json))
-      .catch(err => console.error("User fetch error:", err));
-  }, []);
-
   const handleLogin = () => {
-    if (!users[username] || users[username].password !== password) {
+    // Load saved users from localStorage
+    const savedUsers = JSON.parse(localStorage.getItem("users")) || {};
+
+    // Default admin user
+    const defaultUsers = {
+      admin: { password: "admin123", role: "admin" },
+      user: { password: "user123", role: "user" }
+    };
+
+    // Merge default + saved users
+    const USERS = { ...defaultUsers, ...savedUsers };
+
+    // Username must exist
+    if (!USERS[username]) {
       setError("Invalid username or password");
       return;
     }
 
-    const userInfo = {
-      username,
-      role: users[username].role
-    };
+    // Password must match
+    if (USERS[username].password !== password) {
+      setError("Invalid username or password");
+      return;
+    }
 
+    // Login success
+    const userInfo = { username, role: USERS[username].role };
     localStorage.setItem("user", JSON.stringify(userInfo));
     setUser(userInfo);
   };
