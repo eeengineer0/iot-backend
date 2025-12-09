@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
+import UserManager from "./UserManager";   // 🔥 NEW IMPORT
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -12,6 +13,9 @@ export default function App() {
   const [data, setData] = useState({});
   const [history, setHistory] = useState({});
 
+  // 🔥 NEW: Page state ("dashboard" or "users")
+  const [page, setPage] = useState("dashboard");
+
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
@@ -19,7 +23,7 @@ export default function App() {
     setHistory({});
   };
 
-  // Fetch data **only when logged in**
+  // Fetch realtime data only when logged in
   useEffect(() => {
     if (!user) return;
 
@@ -76,9 +80,19 @@ export default function App() {
     });
   };
 
-  // 🔥 CONDITIONAL RENDER (REACT WILL SWITCH INSTANTLY)
+  // ---------------------------------------------------------
+  // 🔥 PAGE SWITCHING LOGIC
+  // ---------------------------------------------------------
+
+  // If not logged in → show login page
   if (!user) return <Login setUser={setUser} />;
 
+  // If admin selected "Manage Users"
+  if (page === "users") {
+    return <UserManager goBack={() => setPage("dashboard")} />;
+  }
+
+  // Default → show Dashboard
   return (
     <Dashboard
       user={user}
@@ -87,6 +101,7 @@ export default function App() {
       history={history}
       sendCommand={sendCommand}
       updateLimits={updateLimits}
+      goToUserManager={() => setPage("users")}   // 🔥 add this!
     />
   );
 }
