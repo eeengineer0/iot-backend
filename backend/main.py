@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import paho.mqtt.client as mqtt
-import json
-import os
 
 # -----------------------------------------------------
 # FASTAPI APP
@@ -27,33 +25,9 @@ app.add_middleware(
 # STORAGE
 # -----------------------------------------------------
 latest_data = {}
-system_limits = {}
 
-# -----------------------------------------------------
-# USER STORAGE HELPERS
-# -----------------------------------------------------
-USERS_FILE = "users.json"
-
-def load_users():
-    """Load all users from JSON file; if missing, create defaults."""
-    if not os.path.exists(USERS_FILE):
-        users = {
-            "admin": {"password": "admin123", "role": "admin"},
-            "user": {"password": "user123", "role": "user"}
-        }
-        with open(USERS_FILE, "w") as f:
-            json.dump(users, f, indent=4)
-        return users
-
-    with open(USERS_FILE, "r") as f:
-        return json.load(f)
-
-
-def save_users(users):
-    """Save users dictionary back to file."""
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=4)
-
+# Now storing limits PER DEVICE
+system_limits = {}     # {"ESP32-1": {"temp_th": 30, "gas_th": 1.2}, ...}
 
 # -----------------------------------------------------
 # PARSE SENSOR MESSAGES
@@ -100,6 +74,7 @@ def parse_sensor_message(raw: str):
 
     except Exception as e:
         print("Parse error:", e)
+
     return result
 
 
@@ -107,7 +82,7 @@ def parse_sensor_message(raw: str):
 # MQTT CALLBACKS
 # -----------------------------------------------------
 def on_connect(client, userdata, flags, rc):
-    print("Connected:", rc)
+    print("MQTT connected:", rc)
     client.subscribe("iot/pi/data")
 
 
@@ -119,7 +94,7 @@ def on_message(client, userdata, msg):
     if parsed:
         node = parsed["node"]
 
-        # Create default per-device limits if missing
+        # Create default limits for new device
         if node not in system_limits:
             system_limits[node] = {"temp_th": 30.0, "gas_th": 1.20}
 
@@ -134,6 +109,8 @@ def on_message(client, userdata, msg):
 # -----------------------------------------------------
 mqtt_client = mqtt.Client()
 mqtt_client.username_pw_set("p_user", "P_user123")
+
+# Render cannot load a custom certificate → use default
 mqtt_client.tls_set()
 
 mqtt_client.on_connect = on_connect
@@ -141,31 +118,24 @@ mqtt_client.on_message = on_message
 
 mqtt_client.connect(
     "08d5c716cf9f46518abcda4d565e5141.s1.eu.hivemq.cloud",
-    8883
+    port=8883
 )
+
 mqtt_client.loop_start()
 
 
 # -----------------------------------------------------
-# MODELS
+# Pydantic Models
 # -----------------------------------------------------
 class Command(BaseModel):
     device: str
     action: str
 
+
 class LimitUpdate(BaseModel):
     device: str
     temp_th: float | None = None
     gas_th: float | None = None
-
-class LoginData(BaseModel):
-    username: str
-    password: str
-
-class NewUser(BaseModel):
-    username: str
-    password: str
-    role: str
 
 
 # -----------------------------------------------------
@@ -173,87 +143,59 @@ class NewUser(BaseModel):
 # -----------------------------------------------------
 @app.get("/")
 def root():
-    return {"message": "Backend working"}
+    return {"message": "Backend working!"}
 
 
 @app.get("/realtime")
-def realtime_data():
+def realtime():
     return latest_data
 
 
 # -----------------------------------------------------
-# AUTH: LOGIN
-# -----------------------------------------------------
-@app.post("/login")
-def login_user(info: LoginData):
-    users = load_users()
-
-    if info.username not in users:
-        return {"status": "error", "msg": "Invalid username"}
-
-    if users[info.username]["password"] != info.password:
-        return {"status": "error", "msg": "Invalid password"}
-
-    return {
-        "status": "ok",
-        "username": info.username,
-        "role": users[info.username]["role"]
-    }
-
-
-# -----------------------------------------------------
-# AUTH: ADD NEW USER
-# -----------------------------------------------------
-@app.post("/add_user")
-def add_user(u: NewUser):
-    users = load_users()
-
-    if u.username in users:
-        return {"status": "error", "msg": "User already exists"}
-
-    users[u.username] = {
-        "password": u.password,
-        "role": u.role
-    }
-
-    save_users(users)
-    return {"status": "ok", "msg": "User created"}
-
-
-# -----------------------------------------------------
-# SEND ESP32 COMMANDS (LED & FAN)
+# SEND COMMAND
 # -----------------------------------------------------
 @app.post("/command")
 def send_command(cmd: Command):
-    action_fixed = cmd.action.replace("_", " ")
-    message = f"{cmd.device}:{action_fixed}"
+    action_text = cmd.action.replace("_", " ")
+    message = f"{cmd.device}:{action_text}"
 
     r = mqtt_client.publish("iot/pi/command", message)
     print("Publishing:", message, "→ RC =", r.rc)
 
-    return {"status": "ok", "sent": message, "mqtt_rc": r.rc}
+    return {"status": "ok", "sent": message}
 
 
 # -----------------------------------------------------
 # UPDATE LIMITS (PER DEVICE)
 # -----------------------------------------------------
 @app.post("/set_limits")
-def update_limits(limit: LimitUpdate):
+def set_limits(limit: LimitUpdate):
     device = limit.device
 
+    # Create device limits if missing
     if device not in system_limits:
         system_limits[device] = {"temp_th": 30.0, "gas_th": 1.20}
 
     messages = []
 
+    # TEMP
     if limit.temp_th is not None:
         system_limits[device]["temp_th"] = limit.temp_th
         msg = f"{device}:TEMP={limit.temp_th}"
         mqtt_client.publish("iot/pi/command", msg)
+        print("Publishing:", msg)
         messages.append(msg)
 
+    # GAS
     if limit.gas_th is not None:
         system_limits[device]["gas_th"] = limit.gas_th
         msg = f"{device}:GAS={limit.gas_th}"
-        mqtt_client.publish("iot/pi/com_
+        mqtt_client.publish("iot/pi/command", msg)
+        print("Publishing:", msg)
+        messages.append(msg)
 
+    return {
+        "status": "ok",
+        "updated_device": device,
+        "limits": system_limits[device],
+    }
