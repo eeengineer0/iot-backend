@@ -10,14 +10,17 @@ export default function Dashboard({
   goUsers
 }) {
   // -----------------------------
-  // DEBUG LOGGING
+  // 1. SAFE VARIABLE EXTRACTION
   // -----------------------------
-  // Open your browser console to see this. 
-  // It helps us know if "user" is null or undefined.
-  // console.log("Dashboard rendering. User is:", user);
+  // We calculate these BEFORE the HTML is rendered.
+  // This prevents the "undefined is not an object" crash 100%.
+  
+  const safeUsername = user && user.username ? user.username : "Guest";
+  const safeRole = user && user.role ? user.role : "Viewer";
+  const isAdmin = user && user.role === "admin";
 
   // -----------------------------
-  // SAFETY GUARD
+  // 2. LOADING STATE
   // -----------------------------
   if (!user) {
     return (
@@ -28,28 +31,19 @@ export default function Dashboard({
   }
 
   // -----------------------------------
-  // CARD STYLE FUNCTION
+  // 3. CARD STYLE FUNCTION
   // -----------------------------------
   const cardStyle = (device) => {
-    // Safety check: if device is null, return default style immediately
-    if (!device) {
-       return { 
-          width: "360px", 
-          background: "#fff", 
-          padding: "22px", 
-          margin: "20px",
-          borderRadius: "18px"
-       };
-    }
+    if (!device) return {}; // Safety check
 
     const now = Date.now();
-    const timestamp = device._timestamp ? device._timestamp : 0;
+    const timestamp = device._timestamp || 0;
     const age = now - timestamp;
 
     let bg = "#ffffff";
     if (age > 5000) bg = "#e8e8e8";
     
-    // Manual checks instead of ?.
+    // Safety checks for device properties
     if (device.ao_v > device.gas_th) bg = "#ffe0e0";
     if (device.t > device.temp_th) bg = "#ffe9d6";
 
@@ -74,7 +68,7 @@ export default function Dashboard({
   };
 
   // -----------------------------------
-  // UI
+  // 4. UI RENDER
   // -----------------------------------
   return (
     <div
@@ -87,21 +81,19 @@ export default function Dashboard({
     >
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        {/* V3 TITLE - To verify update */}
-        <h1 style={{ color: "#1e90ff" }}>🌐 Smart IoT Dashboard (V3)</h1>
+        {/* Title updated to V4 to verify fix */}
+        <h1 style={{ color: "#1e90ff" }}>🌐 Smart IoT Dashboard (V4)</h1>
 
         <div style={{ textAlign: "right" }}>
           <p>
             Logged in as:{" "}
             <strong style={{ color: "#1e90ff" }}>
-              {/* OLD SCHOOL SAFETY CHECK (Ternary Operator) */}
-              {user && user.username ? user.username : "Guest"}
+              {safeUsername}
             </strong>{" "}
-            ({user && user.role ? user.role : "Viewer"})
+            ({safeRole})
           </p>
 
-          {/* OLD SCHOOL SAFETY CHECK */}
-          {user && user.role === "admin" && (
+          {isAdmin && (
             <button
               onClick={goUsers}
               style={{
@@ -136,7 +128,6 @@ export default function Dashboard({
 
       {/* DEVICES */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-        {/* Safety check on data object */}
         {(!data || Object.keys(data).length === 0) && (
           <p style={{ marginTop: "40px" }}>Waiting for device data...</p>
         )}
@@ -154,8 +145,7 @@ export default function Dashboard({
                 <p><strong>Humidity:</strong> {d.h} %</p>
                 <p><strong>Gas:</strong> {d.ao_v} V</p>
 
-                {/* OLD SCHOOL SAFETY CHECK */}
-                {user && user.role === "admin" && (
+                {isAdmin && (
                   <>
                     <hr />
                     <button
@@ -174,12 +164,11 @@ export default function Dashboard({
                 )}
               </div>
 
-              {/* Safety check on history object */}
               {history && history[node] && (
                 <GraphCard
                   title="Temperature"
-                  labels={history[node].time || []}
-                  data={history[node].temp || []}
+                  labels={history[node]?.time || []}
+                  data={history[node]?.temp || []}
                   color="#ff5733"
                 />
               )}
