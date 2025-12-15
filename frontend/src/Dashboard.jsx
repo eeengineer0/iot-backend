@@ -64,7 +64,7 @@ export default function Dashboard({
             color: "#1e90ff",
           }}
         >
-          🌐 Smart IoT Dashboard
+          🌐 Smart IoT Dashboard1
         </h1>
 
         <div
