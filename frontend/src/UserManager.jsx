@@ -3,69 +3,95 @@ import { useEffect, useState } from "react";
 const API = import.meta.env.VITE_API_BASE_URL;
 
 export default function UserManager({ goBack }) {
+  const [users, setUsers] = useState({});
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
+  const [editingUser, setEditingUser] = useState(null);
   const [message, setMessage] = useState("");
-  const [users, setUsers] = useState({});
 
-  // Load users on page start
-  useEffect(() => {
+  // Load existing users
+  const loadUsers = () => {
     fetch(`${API}/users`)
       .then((res) => res.json())
       .then((data) => setUsers(data));
+  };
+
+  useEffect(() => {
+    loadUsers();
   }, []);
 
-  // -----------------------------
-  // CREATE USER
-  // -----------------------------
+  // Save or Update User
   const saveUser = () => {
-    fetch(`${API}/add_user`, {
+    if (!username || !password) {
+      setMessage("Username and password required.");
+      return;
+    }
+
+    const endpoint = editingUser ? "edit_user" : "add_user";
+
+    const payload = editingUser
+      ? {
+          old_username: editingUser,
+          new_username: username,
+          password,
+          role
+        }
+      : {
+          username,
+          password,
+          role
+        };
+
+    fetch(`${API}/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, role }),
+      body: JSON.stringify(payload)
     })
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((data) => {
         setMessage(data.msg);
-
-        // Refresh users list
-        fetch(`${API}/users`)
-          .then((res) => res.json())
-          .then((data) => setUsers(data));
+        loadUsers();
+        setEditingUser(null);
+        setUsername("");
+        setPassword("");
+        setRole("user");
       });
   };
 
-  // -----------------------------
-  // DELETE USER
-  // -----------------------------
-  const deleteUser = (username) => {
-    if (!confirm(`Delete user "${username}"?`)) return;
+  // Delete user
+  const deleteUser = (u) => {
+    if (u === "admin") {
+      setMessage("Cannot delete default admin!");
+      return;
+    }
 
     fetch(`${API}/delete_user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ username: u })
     })
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((data) => {
         setMessage(data.msg);
-
-        // Refresh users list
-        fetch(`${API}/users`)
-          .then((res) => res.json())
-          .then((data) => setUsers(data));
+        loadUsers();
       });
+  };
+
+  // Edit user (load into form)
+  const editUser = (u) => {
+    setEditingUser(u);
+    setUsername(u);
+    setPassword(users[u].password);
+    setRole(users[u].role);
   };
 
   return (
     <div style={{ textAlign: "center", marginTop: "40px" }}>
-      <h2>User Management</h2>
+      <h2>User Manager</h2>
 
-      {/* --- Add User Form --- */}
+      {/* FORM */}
       <div style={{ marginBottom: "30px" }}>
-        <h3>Create New User</h3>
-
         <input
           placeholder="Username"
           value={username}
@@ -88,62 +114,61 @@ export default function UserManager({ goBack }) {
           <option value="user">User</option>
         </select>
 
-        <br />
-        <button onClick={saveUser} style={{ marginTop: "10px" }}>
-          Save User
+        <br /><br />
+
+        <button onClick={saveUser}>
+          {editingUser ? "Update User" : "Create User"}
         </button>
+
+        <button onClick={goBack} style={{ marginLeft: "10px" }}>
+          Back
+        </button>
+
+        {message && <p style={{ color: "green" }}>{message}</p>}
       </div>
 
-      {/* --- List Users --- */}
+      {/* USERS LIST */}
       <h3>Existing Users</h3>
-      <div
-        style={{
-          width: "60%",
-          margin: "auto",
-          textAlign: "left",
-          background: "#fafafa",
-          padding: "15px",
-          borderRadius: "8px",
-        }}
-      >
+
+      <div style={{ maxWidth: "400px", margin: "auto", textAlign: "left" }}>
         {Object.keys(users).map((u) => (
           <div
             key={u}
             style={{
+              padding: "10px",
+              border: "1px solid #ccc",
+              marginBottom: "8px",
+              borderRadius: "6px",
               display: "flex",
               justifyContent: "space-between",
-              padding: "8px",
-              borderBottom: "1px solid #ddd",
+              alignItems: "center"
             }}
           >
             <div>
-              <strong>{u}</strong> — ({users[u].role})
+              <strong>{u}</strong>  
+              <span style={{ marginLeft: "8px", fontSize: "12px", color: "#555" }}>
+                ({users[u].role})
+              </span>
             </div>
 
-            {u !== "admin" && (
+            <div>
+              <button
+                onClick={() => editUser(u)}
+                style={{ marginRight: "10px" }}
+              >
+                Edit
+              </button>
+
               <button
                 onClick={() => deleteUser(u)}
-                style={{
-                  background: "red",
-                  color: "white",
-                  border: "none",
-                  padding: "5px 10px",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                }}
+                style={{ color: "white", background: "red" }}
               >
                 Delete
               </button>
-            )}
+            </div>
           </div>
         ))}
       </div>
-
-      {message && <p style={{ color: "green" }}>{message}</p>}
-
-      <button onClick={goBack} style={{ marginTop: "20px" }}>
-        Back to Dashboard
-      </button>
     </div>
   );
 }
