@@ -6,28 +6,49 @@ import json
 import os
 
 # =====================================================
-# USER STORAGE
+# USER STORAGE (FIXED FOR CLOUD HOSTING)
 # =====================================================
-USERS_FILE = "users.json"
 
+# 1. Force Python to look in the exact folder where main.py lives
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USERS_FILE = os.path.join(BASE_DIR, "users.json")
 
 def load_users():
+    print(f"DEBUG: Loading users from {USERS_FILE}")
+
+    # 2. Try to read the file
     if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "r") as f:
-            return json.load(f)
-    else:
-        default_users = {
-            "admin": {"password": "admin123", "role": "admin"},
-            "user": {"password": "user123", "role": "user"},
-        }
+        try:
+            with open(USERS_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"ERROR: File exists but is corrupt: {e}")
+
+    # 3. EMERGENCY FALLBACK
+    # If file is missing or corrupt, we return these hardcoded users.
+    # This prevents the "White Screen" because 'admin' will ALWAYS exist.
+    print("WARNING: users.json not found or readable. Using default in-memory users.")
+    default_users = {
+        "admin": {"password": "admin123", "role": "admin"},
+        "user": {"password": "user123", "role": "user"},
+    }
+    
+    # Try to write this file back to disk (might fail on some read-only clouds, but that's okay)
+    try:
         with open(USERS_FILE, "w") as f:
             json.dump(default_users, f, indent=4)
-        return default_users
+    except Exception as e:
+        print(f"WARNING: Could not save default users file: {e}")
+
+    return default_users
 
 
 def save_users(users_dict):
-    with open(USERS_FILE, "w") as f:
-        json.dump(users_dict, f, indent=4)
+    try:
+        with open(USERS_FILE, "w") as f:
+            json.dump(users_dict, f, indent=4)
+    except Exception as e:
+        print(f"ERROR: Could not save users: {e}")
 
 
 users = load_users()
@@ -148,6 +169,7 @@ def list_users():
 
 @app.post("/login")
 def login(u: UserLogin):
+    # RELOAD USERS from memory to be safe, or just check global dict
     if u.username not in users:
         return {"status": "error", "msg": "Invalid username or password"}
 
