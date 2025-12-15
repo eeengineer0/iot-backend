@@ -9,9 +9,15 @@ export default function Dashboard({
   updateLimits,
   goUsers
 }) {
-  // ✅ CRITICAL FIX: prevent crash
+  // -----------------------------
+  // SAFETY GUARD (CRITICAL)
+  // -----------------------------
   if (!user) {
-    return null; // or loading screen
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <h2>Loading user session...</h2>
+      </div>
+    );
   }
 
   // -----------------------------------
@@ -19,12 +25,12 @@ export default function Dashboard({
   // -----------------------------------
   const cardStyle = (device) => {
     const now = Date.now();
-    const age = now - (device._timestamp || 0);
+    const age = now - (device?._timestamp || 0);
 
     let bg = "#ffffff";
     if (age > 5000) bg = "#e8e8e8";
-    if (device.ao_v > device.gas_th) bg = "#ffe0e0";
-    if (device.t > device.temp_th) bg = "#ffe9d6";
+    if (device?.ao_v > device?.gas_th) bg = "#ffe0e0";
+    if (device?.t > device?.temp_th) bg = "#ffe9d6";
 
     return {
       width: "360px",
@@ -47,7 +53,7 @@ export default function Dashboard({
   };
 
   // -----------------------------------
-  // MAIN UI
+  // UI
   // -----------------------------------
   return (
     <div
@@ -64,7 +70,7 @@ export default function Dashboard({
 
         <div style={{ textAlign: "right" }}>
           <p>
-            Logged in as{" "}
+            Logged in as:{" "}
             <strong style={{ color: "#1e90ff" }}>
               {user.username}
             </strong>{" "}
@@ -79,8 +85,9 @@ export default function Dashboard({
                 background: "#1e90ff",
                 color: "white",
                 borderRadius: "6px",
-                border: "none",
                 marginRight: "10px",
+                border: "none",
+                cursor: "pointer",
               }}
             >
               Manage Users
@@ -95,6 +102,7 @@ export default function Dashboard({
               color: "white",
               borderRadius: "6px",
               border: "none",
+              cursor: "pointer",
             }}
           >
             Logout
@@ -105,31 +113,31 @@ export default function Dashboard({
       {/* DEVICES */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
         {Object.keys(data).length === 0 && (
-          <p style={{ marginTop: "40px", fontSize: "18px" }}>
-            ⏳ Waiting for device data...
-          </p>
+          <p style={{ marginTop: "40px" }}>Waiting for device data...</p>
         )}
 
         {Object.keys(data).map((node) => {
           const d = data[node];
+          if (!d) return null;
 
           return (
             <div key={node}>
               <div style={cardStyle(d)}>
                 <h2>{node}</h2>
+                <p><strong>Time:</strong> {d.time}</p>
                 <p><strong>Temp:</strong> {d.t} °C</p>
                 <p><strong>Humidity:</strong> {d.h} %</p>
                 <p><strong>Gas:</strong> {d.ao_v} V</p>
 
                 {user.role === "admin" && (
                   <>
+                    <hr />
                     <button
                       onClick={() => sendCommand(node, "LED_ON")}
                       style={{ ...buttonStyle, background: "#28a745", color: "white" }}
                     >
                       LED ON
                     </button>
-
                     <button
                       onClick={() => sendCommand(node, "LED_OFF")}
                       style={{ ...buttonStyle, background: "#dc3545", color: "white" }}
