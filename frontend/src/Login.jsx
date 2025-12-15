@@ -11,16 +11,17 @@ export default function Login({ setUser }) {
     fetch(`${API}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.status === "error") {
           setError(data.msg);
-        } else {
-          localStorage.setItem("user", JSON.stringify(data.user));
-          setUser(data.user);
+          return;
         }
+
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setUser(data.user);
       });
   };
 
@@ -28,12 +29,33 @@ export default function Login({ setUser }) {
     <div style={{ textAlign: "center", marginTop: "100px" }}>
       <h2>🔐 Login</h2>
 
-      <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" />
-      <br />
-      <input value={password} type="password" onChange={e => setPassword(e.target.value)} placeholder="Password" />
-      <br /><br />
+      <input
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        style={{ padding: "10px", margin: "10px" }}
+      />
 
-      <button onClick={handleLogin}>Login</button>
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{ padding: "10px", margin: "10px" }}
+      />
+
+      <button
+        onClick={handleLogin}
+        style={{
+          padding: "10px 20px",
+          background: "#1e90ff",
+          color: "white",
+          borderRadius: "6px",
+          cursor: "pointer",
+        }}
+      >
+        Login
+      </button>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
