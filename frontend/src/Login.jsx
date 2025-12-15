@@ -15,15 +15,15 @@ export default function Login({ setUser }) {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.status !== "ok") {
-          setError("Invalid username or password");
-          return;
+        if (data.status === "error") {
+          setError(data.msg);
+        } else {
+          const userInfo = { username: data.username, role: data.role };
+          localStorage.setItem("user", JSON.stringify(userInfo));
+          setUser(userInfo);
         }
-
-        const userInfo = { username: data.username, role: data.role };
-        localStorage.setItem("user", JSON.stringify(userInfo));
-        setUser(userInfo);
-      });
+      })
+      .catch(() => setError("Server unreachable"));
   };
 
   return (
@@ -34,6 +34,7 @@ export default function Login({ setUser }) {
         placeholder="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        style={{ padding: "10px", margin: "10px" }}
       />
 
       <br />
@@ -43,11 +44,25 @@ export default function Login({ setUser }) {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        style={{ padding: "10px", margin: "10px" }}
       />
 
       <br />
 
-      <button onClick={handleLogin}>Login</button>
+      <button
+        onClick={handleLogin}
+        style={{
+          padding: "10px 20px",
+          background: "#1e90ff",
+          color: "white",
+          borderRadius: "6px",
+          border: "none",
+          marginTop: "10px",
+          cursor: "pointer"
+        }}
+      >
+        Login
+      </button>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
