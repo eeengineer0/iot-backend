@@ -10,9 +10,9 @@ export default function Dashboard({
   goUsers
 }) {
   // -----------------------------
-  // SAFETY GUARD
+  // SAFETY GUARD (The "Bouncer")
   // -----------------------------
-  // We keep this, but we also add safeguards below just in case.
+  // If user is missing or empty, show loading instead of crashing
   if (!user) {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
@@ -25,11 +25,15 @@ export default function Dashboard({
   // CARD STYLE FUNCTION
   // -----------------------------------
   const cardStyle = (device) => {
+    // Safety: check if device exists before reading timestamp
     const now = Date.now();
-    const age = now - (device?._timestamp || 0);
+    const timestamp = device?._timestamp || 0; 
+    const age = now - timestamp;
 
     let bg = "#ffffff";
     if (age > 5000) bg = "#e8e8e8";
+    
+    // Safety: use ?. for all device properties
     if (device?.ao_v > device?.gas_th) bg = "#ffe0e0";
     if (device?.t > device?.temp_th) bg = "#ffe9d6";
 
@@ -67,19 +71,20 @@ export default function Dashboard({
     >
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h1 style={{ color: "#1e90ff" }}>🌐 Smart IoT Dashboard</h1>
+        {/* V2 TITLE - Helps you verify the update worked */}
+        <h1 style={{ color: "#1e90ff" }}>🌐 Smart IoT Dashboard (V2)</h1>
 
         <div style={{ textAlign: "right" }}>
           <p>
             Logged in as:{" "}
-            {/* --- FIX APPLIED HERE: Added ?. --- */}
+            {/* EXTREME SAFETY CHECK */}
             <strong style={{ color: "#1e90ff" }}>
-              {user?.username || "User"}
+              {user?.username || "Guest"}
             </strong>{" "}
-            ({user?.role})
+            ({user?.role || "Viewer"})
           </p>
 
-          {/* --- FIX APPLIED HERE: Added ?. --- */}
+          {/* EXTREME SAFETY CHECK */}
           {user?.role === "admin" && (
             <button
               onClick={goUsers}
@@ -115,11 +120,11 @@ export default function Dashboard({
 
       {/* DEVICES */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-        {Object.keys(data).length === 0 && (
+        {(!data || Object.keys(data).length === 0) && (
           <p style={{ marginTop: "40px" }}>Waiting for device data...</p>
         )}
 
-        {Object.keys(data).map((node) => {
+        {data && Object.keys(data).map((node) => {
           const d = data[node];
           if (!d) return null;
 
@@ -127,12 +132,12 @@ export default function Dashboard({
             <div key={node}>
               <div style={cardStyle(d)}>
                 <h2>{node}</h2>
-                <p><strong>Time:</strong> {d.time}</p>
+                <p><strong>Time:</strong> {d.time || "--:--"}</p>
                 <p><strong>Temp:</strong> {d.t} °C</p>
                 <p><strong>Humidity:</strong> {d.h} %</p>
                 <p><strong>Gas:</strong> {d.ao_v} V</p>
 
-                {/* --- FIX APPLIED HERE: Added ?. --- */}
+                {/* EXTREME SAFETY CHECK */}
                 {user?.role === "admin" && (
                   <>
                     <hr />
@@ -152,11 +157,11 @@ export default function Dashboard({
                 )}
               </div>
 
-              {history[node] && (
+              {history && history[node] && (
                 <GraphCard
                   title="Temperature"
-                  labels={history[node].time}
-                  data={history[node].temp}
+                  labels={history[node]?.time || []}
+                  data={history[node]?.temp || []}
                   color="#ff5733"
                 />
               )}
