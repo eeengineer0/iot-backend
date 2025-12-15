@@ -7,15 +7,18 @@ export default function UserManager({ goBack }) {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
   const [message, setMessage] = useState("");
-  const [userList, setUserList] = useState({});
+  const [users, setUsers] = useState({});
 
-  // Load users from backend
+  // Load users on page start
   useEffect(() => {
     fetch(`${API}/users`)
       .then((res) => res.json())
-      .then((data) => setUserList(data));
+      .then((data) => setUsers(data));
   }, []);
 
+  // -----------------------------
+  // CREATE USER
+  // -----------------------------
   const saveUser = () => {
     fetch(`${API}/add_user`, {
       method: "POST",
@@ -26,105 +29,121 @@ export default function UserManager({ goBack }) {
       .then((data) => {
         setMessage(data.msg);
 
-        // Refresh list
+        // Refresh users list
         fetch(`${API}/users`)
           .then((res) => res.json())
-          .then((data) => setUserList(data));
+          .then((data) => setUsers(data));
+      });
+  };
+
+  // -----------------------------
+  // DELETE USER
+  // -----------------------------
+  const deleteUser = (username) => {
+    if (!confirm(`Delete user "${username}"?`)) return;
+
+    fetch(`${API}/delete_user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setMessage(data.msg);
+
+        // Refresh users list
+        fetch(`${API}/users`)
+          .then((res) => res.json())
+          .then((data) => setUsers(data));
       });
   };
 
   return (
     <div style={{ textAlign: "center", marginTop: "40px" }}>
-      <h2>Create New User</h2>
+      <h2>User Management</h2>
 
-      <input
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        style={{ padding: "8px", margin: "5px" }}
-      />
+      {/* --- Add User Form --- */}
+      <div style={{ marginBottom: "30px" }}>
+        <h3>Create New User</h3>
 
-      <input
-        placeholder="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        style={{ padding: "8px", margin: "5px" }}
-      />
+        <input
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
 
-      <select
-        value={role}
-        onChange={(e) => setRole(e.target.value)}
-        style={{ padding: "8px", margin: "5px" }}
-      >
-        <option value="admin">Admin</option>
-        <option value="user">User</option>
-      </select>
+        <br />
 
-      <br />
+        <input
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      <button
-        onClick={saveUser}
+        <br />
+
+        <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+        </select>
+
+        <br />
+        <button onClick={saveUser} style={{ marginTop: "10px" }}>
+          Save User
+        </button>
+      </div>
+
+      {/* --- List Users --- */}
+      <h3>Existing Users</h3>
+      <div
         style={{
-          padding: "10px 20px",
-          background: "green",
-          color: "white",
-          borderRadius: "6px",
-          marginTop: "10px",
+          width: "60%",
+          margin: "auto",
+          textAlign: "left",
+          background: "#fafafa",
+          padding: "15px",
+          borderRadius: "8px",
         }}
       >
-        Save User
-      </button>
+        {Object.keys(users).map((u) => (
+          <div
+            key={u}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "8px",
+              borderBottom: "1px solid #ddd",
+            }}
+          >
+            <div>
+              <strong>{u}</strong> — ({users[u].role})
+            </div>
 
-      <button
-        onClick={goBack}
-        style={{
-          padding: "10px 20px",
-          background: "#1e90ff",
-          color: "white",
-          borderRadius: "6px",
-          marginLeft: "10px",
-          marginTop: "10px",
-        }}
-      >
-        Back
-      </button>
+            {u !== "admin" && (
+              <button
+                onClick={() => deleteUser(u)}
+                style={{
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  padding: "5px 10px",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
 
       {message && <p style={{ color: "green" }}>{message}</p>}
 
-      <h2 style={{ marginTop: "40px" }}>Existing Users</h2>
-
-      <table
-        style={{
-          margin: "0 auto",
-          borderCollapse: "collapse",
-          width: "60%",
-        }}
-      >
-        <thead>
-          <tr style={{ background: "#f0f0f0" }}>
-            <th style={{ border: "1px solid #ccc", padding: "10px" }}>
-              Username
-            </th>
-            <th style={{ border: "1px solid #ccc", padding: "10px" }}>
-              Role
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {Object.entries(userList).map(([name, data]) => (
-            <tr key={name}>
-              <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                {name}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                {data.role}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <button onClick={goBack} style={{ marginTop: "20px" }}>
+        Back to Dashboard
+      </button>
     </div>
   );
 }
