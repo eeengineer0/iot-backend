@@ -7,15 +7,11 @@ export default function Dashboard({
   logout,
   sendCommand,
   updateLimits,
-  goUsers,
+  goUsers
 }) {
-  // 🛑 SAFETY GUARD — prevents white screen
+  // ✅ CRITICAL FIX: prevent crash
   if (!user) {
-    return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <h2>Loading dashboard...</h2>
-      </div>
-    );
+    return null; // or loading screen
   }
 
   // -----------------------------------
@@ -83,6 +79,7 @@ export default function Dashboard({
                 background: "#1e90ff",
                 color: "white",
                 borderRadius: "6px",
+                border: "none",
                 marginRight: "10px",
               }}
             >
@@ -97,6 +94,7 @@ export default function Dashboard({
               background: "#dc3545",
               color: "white",
               borderRadius: "6px",
+              border: "none",
             }}
           >
             Logout
@@ -104,11 +102,11 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* DEVICE CARDS */}
+      {/* DEVICES */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
         {Object.keys(data).length === 0 && (
-          <p style={{ marginTop: "40px" }}>
-            Waiting for device data...
+          <p style={{ marginTop: "40px", fontSize: "18px" }}>
+            ⏳ Waiting for device data...
           </p>
         )}
 
@@ -119,24 +117,12 @@ export default function Dashboard({
             <div key={node}>
               <div style={cardStyle(d)}>
                 <h2>{node}</h2>
-
                 <p><strong>Temp:</strong> {d.t} °C</p>
                 <p><strong>Humidity:</strong> {d.h} %</p>
                 <p><strong>Gas:</strong> {d.ao_v} V</p>
 
-                <p>
-                  <strong>LED:</strong>{" "}
-                  {d.led === "ON" ? "🟢 ON" : "⚪ OFF"}
-                </p>
-
-                <p>
-                  <strong>Fan:</strong>{" "}
-                  {d.fan === "ON" ? "🟢 ON" : "⚪ OFF"}
-                </p>
-
                 {user.role === "admin" && (
                   <>
-                    <hr />
                     <button
                       onClick={() => sendCommand(node, "LED_ON")}
                       style={{ ...buttonStyle, background: "#28a745", color: "white" }}
