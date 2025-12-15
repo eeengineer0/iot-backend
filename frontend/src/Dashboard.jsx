@@ -9,9 +9,7 @@ export default function Dashboard({
   updateLimits,
   goUsers,
 }) {
-  // -----------------------------------
-  // SAFETY CHECK (VERY IMPORTANT)
-  // -----------------------------------
+  // 🛑 SAFETY GUARD — prevents white screen
   if (!user) {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
@@ -24,8 +22,6 @@ export default function Dashboard({
   // CARD STYLE FUNCTION
   // -----------------------------------
   const cardStyle = (device) => {
-    if (!device) return {};
-
     const now = Date.now();
     const age = now - (device._timestamp || 0);
 
@@ -41,9 +37,6 @@ export default function Dashboard({
       padding: "22px",
       margin: "20px",
       boxShadow: "0px 10px 25px rgba(0,0,0,0.1)",
-      color: "#1a1a1a",
-      fontWeight: "500",
-      transition: "0.3s",
     };
   };
 
@@ -71,13 +64,11 @@ export default function Dashboard({
     >
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h1 style={{ marginBottom: "30px", color: "#1e90ff" }}>
-          🌐 Smart IoT Dashboard
-        </h1>
+        <h1 style={{ color: "#1e90ff" }}>🌐 Smart IoT Dashboard</h1>
 
-        <div style={{ textAlign: "right", marginRight: "20px" }}>
+        <div style={{ textAlign: "right" }}>
           <p>
-            Logged in as:{" "}
+            Logged in as{" "}
             <strong style={{ color: "#1e90ff" }}>
               {user.username}
             </strong>{" "}
@@ -92,9 +83,7 @@ export default function Dashboard({
                 background: "#1e90ff",
                 color: "white",
                 borderRadius: "6px",
-                border: "none",
                 marginRight: "10px",
-                cursor: "pointer",
               }}
             >
               Manage Users
@@ -108,8 +97,6 @@ export default function Dashboard({
               background: "#dc3545",
               color: "white",
               borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
             }}
           >
             Logout
@@ -120,69 +107,46 @@ export default function Dashboard({
       {/* DEVICE CARDS */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
         {Object.keys(data).length === 0 && (
-          <p>No device data yet…</p>
+          <p style={{ marginTop: "40px" }}>
+            Waiting for device data...
+          </p>
         )}
 
         {Object.keys(data).map((node) => {
           const d = data[node];
-          if (!d) return null;
 
           return (
-            <div key={node} style={{ display: "flex", flexDirection: "column" }}>
+            <div key={node}>
               <div style={cardStyle(d)}>
                 <h2>{node}</h2>
 
-                <p><strong>Time:</strong> {d.time || "-"}</p>
-                <p><strong>Temp:</strong> {d.t ?? "-"} °C</p>
-                <p><strong>Humidity:</strong> {d.h ?? "-"} %</p>
-                <p><strong>Gas:</strong> {d.ao_v ?? "-"} V</p>
+                <p><strong>Temp:</strong> {d.t} °C</p>
+                <p><strong>Humidity:</strong> {d.h} %</p>
+                <p><strong>Gas:</strong> {d.ao_v} V</p>
 
                 <p>
-                  <strong>LED:</strong> {d.led || "OFF"}
+                  <strong>LED:</strong>{" "}
+                  {d.led === "ON" ? "🟢 ON" : "⚪ OFF"}
                 </p>
 
                 <p>
-                  <strong>Fan:</strong> {d.fan || "OFF"}
+                  <strong>Fan:</strong>{" "}
+                  {d.fan === "ON" ? "🟢 ON" : "⚪ OFF"}
                 </p>
-
-                <hr />
-
-                <p><strong>Temp Limit:</strong> {d.temp_th}</p>
-                <p><strong>Gas Limit:</strong> {d.gas_th}</p>
 
                 {user.role === "admin" && (
                   <>
-                    <input
-                      id={`${node}-temp-limit`}
-                      type="number"
-                      defaultValue={d.temp_th}
-                    />
-                    <input
-                      id={`${node}-gas-limit`}
-                      type="number"
-                      defaultValue={d.gas_th}
-                    />
-                    <br />
-
-                    <button
-                      style={{ ...buttonStyle, background: "#007bff", color: "white" }}
-                      onClick={() => updateLimits(node)}
-                    >
-                      Save Limits
-                    </button>
-
                     <hr />
-
                     <button
-                      style={{ ...buttonStyle, background: "#28a745", color: "white" }}
                       onClick={() => sendCommand(node, "LED_ON")}
+                      style={{ ...buttonStyle, background: "#28a745", color: "white" }}
                     >
                       LED ON
                     </button>
 
                     <button
-                      style={{ ...buttonStyle, background: "#dc3545", color: "white" }}
                       onClick={() => sendCommand(node, "LED_OFF")}
+                      style={{ ...buttonStyle, background: "#dc3545", color: "white" }}
                     >
                       LED OFF
                     </button>
@@ -195,6 +159,7 @@ export default function Dashboard({
                   title="Temperature"
                   labels={history[node].time}
                   data={history[node].temp}
+                  color="#ff5733"
                 />
               )}
             </div>
