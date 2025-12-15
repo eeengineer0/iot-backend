@@ -8,7 +8,6 @@ export default function Login({ setUser }) {
   const [error, setError] = useState("");
 
   const handleLogin = () => {
-    // Connects to your Python Backend
     fetch(`${API}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -16,54 +15,41 @@ export default function Login({ setUser }) {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.status === "error") {
-          setError(data.msg);
+        if (data.status !== "ok") {
+          setError("Invalid username or password");
           return;
         }
 
-        // Saves user to browser memory so they stay logged in
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setUser(data.user);
-      })
-      .catch(() => {
-        setError("Login failed: Cannot reach server");
+        const userInfo = { username: data.username, role: data.role };
+        localStorage.setItem("user", JSON.stringify(userInfo));
+        setUser(userInfo);
       });
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "100px", fontFamily: "Arial" }}>
+    <div style={{ textAlign: "center", marginTop: "100px" }}>
       <h2>🔐 Login</h2>
 
       <input
         placeholder="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        style={{ padding: "10px", margin: "10px" }}
       />
+
+      <br />
 
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        style={{ padding: "10px", margin: "10px" }}
       />
 
-      <button
-        onClick={handleLogin}
-        style={{
-          padding: "10px 20px",
-          background: "#1e90ff",
-          color: "white",
-          borderRadius: "6px",
-          cursor: "pointer",
-          border: "none",
-        }}
-      >
-        Login
-      </button>
+      <br />
 
-      {error && <p style={{ color: "red", marginTop: "10px" }}>{error}</p>}
+      <button onClick={handleLogin}>Login</button>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 }
